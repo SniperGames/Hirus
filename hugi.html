@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hugi Bugi</title>
+    <link rel="icon" href="Herobrine.png" type="image/png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto auto auto;
+            gap: 20px;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        .herobrine-wrap {
+            grid-column: 2;
+            grid-row: 1;
+            justify-self: center;
+            display: inline-block;
+            transform-origin: center;
+            transition: transform 0.2s ease;
+        }
+
+        #hugi-img {
+            grid-column: 1;
+            grid-row: 2;
+            justify-self: start;
+        }
+
+        #dupa-img {
+            grid-column: 1;
+            grid-row: 3;
+            justify-self: start;
+        }
+
+        #jajeczko-img {
+            grid-column: 1;
+            grid-row: 4;
+            justify-self: start;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .rotated {
+            animation: spin 3s linear infinite, changeColor 4s linear infinite;
+            transform-origin: center;
+            display: block;
+            max-width: 300px;
+            width: 100%;
+        }
+
+        /* Pause the animation without losing the current transform */
+        .rotated.paused {
+            animation-play-state: paused;
+        }
+
+        /* Wrapper will handle scaling while the inner image animation is paused */
+        .herobrine-wrap {
+            display: inline-block;
+            transform-origin: center;
+            transition: transform 0.2s ease;
+        }
+        .herobrine-wrap.playing {
+            transform: scale(1.5);
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        @keyframes changeColor {
+            0% {
+                filter: hue-rotate(0deg);
+            }
+            25% {
+                filter: hue-rotate(90deg);
+            }
+            50% {
+                filter: hue-rotate(180deg);
+            }
+            75% {
+                filter: hue-rotate(270deg);
+            }
+            100% {
+                filter: hue-rotate(360deg);
+            }
+        }
+
+        /* Responsive styles for smaller screens */
+        @media (max-width: 768px) {
+            body {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .herobrine-wrap {
+                grid-column: 1;
+            }
+
+            #hugi-img, #dupa-img, #jajeczko-img {
+                grid-column: 1;
+            }
+
+            .rotated {
+                max-width: 150px;
+            }
+
+            .herobrine-wrap.playing {
+                transform: scale(1.3);
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .rotated {
+                max-width: 100px;
+            }
+
+            .herobrine-wrap.playing {
+                transform: scale(1.2);
+            }
+
+            img {
+                max-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="herobrine-wrap">
+        <img src="Herobrine.png" alt="Herobrine, a Minecraft character with a pale white skin, dark eyes, and black hair, standing against a dark background with an eerie and unsettling presence" class="rotated">
+    </div>
+    <img id="hugi-img" src="hugi.png" alt="Hugi Wugi, a blue furry character with a cheerful expression and open mouth, against a neutral background">
+    <img id="dupa-img" src="dupa.png" alt="Colorful cartoon characters with exaggerated facial expressions surrounding a yellow sign that reads playtime co. The characters appear joyful and energetic, set against a bright blue background. The overall tone is playful and cheerful.">
+    <img id="jajeczko-img" src="jajeczko.png" alt="A small egg character with a cheerful expression, rendered in a colorful cartoon style against a bright background, matching the playful aesthetic of the Playtime Co. theme">
+
+    <script>
+        const wrapper = document.querySelector('.herobrine-wrap');
+        const herobrine = wrapper.querySelector('img.rotated');
+
+        // List of clips: cave.mp3, cave2.mp3 ... cave13.mp3
+        const clips = ['cave.mp3'].concat(Array.from({length: 12}, (_, i) => `cave${i+2}.mp3`));
+
+        // Single persistent Audio object
+        const audio = new Audio();
+        audio.preload = 'auto';
+        let scheduledTimeout = null;
+
+        function chooseRandomClip() {
+            const idx = Math.floor(Math.random() * clips.length);
+            return clips[idx];
+        }
+
+        function scheduleNext() {
+            const randomDelay = Math.random() * 6000 + 2000;
+            scheduledTimeout = setTimeout(startPlayback, randomDelay);
+        }
+
+        function startPlayback() {
+            // Clear any previously scheduled attempts
+            if (scheduledTimeout) { clearTimeout(scheduledTimeout); scheduledTimeout = null; }
+
+            // Pick a random clip and play it
+            const clip = chooseRandomClip();
+            audio.src = clip;
+            audio.currentTime = 0;
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    // Autoplay blocked - wait for user gesture (we also listen for first click)
+                });
+            }
+        }
+
+        // When audio actually starts playing, pause animations and scale up
+        audio.addEventListener('playing', function() {
+            herobrine.classList.add('paused');
+            wrapper.classList.add('playing');
+            if (scheduledTimeout) { clearTimeout(scheduledTimeout); scheduledTimeout = null; }
+        });
+
+        // When audio ends, resume animations and schedule next random play
+        audio.addEventListener('ended', function() {
+            herobrine.classList.remove('paused');
+            wrapper.classList.remove('playing');
+            scheduleNext();
+        });
+
+        // One-time handler to start audio on first user interaction (click anywhere)
+        function onFirstUserGesture() {
+            window.removeEventListener('click', onFirstUserGesture, true);
+            startPlayback();
+        }
+
+        // Try to autoplay on load, and also listen for a first user click to guarantee playback
+        window.addEventListener('load', function() {
+            // Try autoplay after a brief delay to allow browser to fully initialize
+            setTimeout(() => {
+                try { startPlayback(); } catch (e) {}
+            }, 500);
+            // Also set up manual click handler as fallback if autoplay is blocked
+            window.addEventListener('click', onFirstUserGesture, true);
+        });
+    </script>
+</body>
+</html>
